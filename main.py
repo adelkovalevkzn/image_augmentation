@@ -1,5 +1,7 @@
+import os
 import cv2
 import numpy as np
+import argparse
 
 
 class CoordinateError(Exception):
@@ -8,6 +10,30 @@ class CoordinateError(Exception):
 
     def __str__(self):
         return self.message
+
+
+class UnknownMethodError(Exception):
+    def __init__(self):
+        self.message = 'Неизвестный метод'
+
+    def __str__(self):
+        return self.message
+
+class Parser:
+    def __init__(self):
+        self.parser = argparse.ArgumentParser(
+            prog="python3 main.py",
+            description="Основные методы аугментации изображения",
+            epilog="Методы: resize (изменение размера), shift (сдвиг), crop (вырезка), rotate (поворот)"
+
+        )
+        self.parser.add_argument('filename')
+        self.parser.add_argument('-m', '--method')
+        self.parser.add_argument('-p', '--params', nargs='*')
+        self.parser.add_argument('-o', '--output')
+
+    def get_parser(self):
+        return self.parser
 
 
 class Augmentation:
@@ -19,14 +45,13 @@ class Augmentation:
         self.image = cv2.imread(image_path, cv2.IMREAD_COLOR)
         self.image_shape = self.image.shape[:2]
 
-    def resize(self, new_size: tuple, algorithm=cv2.INTER_LINEAR):
+    def resize(self, new_size: tuple):
         """
         Изменение размера изображения
-        :param algorithm: Алгоритм интерполяции (INTER_LINEAR, INTER_NEAREST etc.)
         :param new_size: Новый размер изображения (высота, ширина)
         :return:
         """
-        self.image = cv2.resize(self.image, new_size, algorithm)
+        self.image = cv2.resize(self.image, new_size, cv2.INTER_LINEAR)
         self.image_shape = new_size
 
     def shift(self, x: int, y: int):
@@ -68,13 +93,36 @@ class Augmentation:
         rotation_matrix = cv2.getRotationMatrix2D(center, angle, scale)
         self.image = cv2.warpAffine(self.image, rotation_matrix, self.image_shape)
 
+    def save_image(self, dest):
+        cv2.imwrite(dest, self.image)
+        print(f'[*] Изображение сохранено в {os.path.abspath(dest)}')
+
 
 if __name__ == '__main__':
-    aug = Augmentation('example.png')
-    aug.resize((1200, 888), cv2.INTER_NEAREST)
-    aug.shift(150, -100)
-    aug.crop((100, 300), (200, 500))
-    aug.rotate(25.1, 0.8)
+    parser = Parser().get_parser()
+    args = parser.parse_args()
 
-    cv2.imshow('result', aug.image)
-    cv2.waitKey(0)
+    aug = Augmentation(args.filename)
+    method = args.method
+
+    if method == 'resize':
+        params = tuple(map(int, (args.params[0], args.params[1])))
+        aug.resize(params)
+
+    elif method == 'shift':
+        aug.shift(int(args.params[0]), int(args.params[1]))
+
+    elif method == 'crop':
+        x = tuple(map(int, (args.params[0], args.params[1])))
+        y = tuple(map(int, (args.params[2], args.params[3])))
+        aug.crop(x, y)
+
+    elif method == 'rotate':
+        angle = int(args.params[0])
+        scale = float(args.params[1])
+        aug.rotate(angle, scale)
+
+    else:
+        raise UnknownMethodError
+
+    aug.save_image(args.output)
