@@ -59,7 +59,7 @@ class Augmentation:
 
     def rotate(self, angle, scale):
         """
-
+        Поворот изображения на определенный угол
         :param angle: угол поворота
         :param scale: коэффициент масштабирования
         :return:
