@@ -8,3 +8,4 @@
 - pip3 install -r requirements.txt
 
 ## Использование:
+python3 main.py [filename] -m [method] -p [params] -o [output_filename]
