@@ -1,10 +1,11 @@
 import os
-import cv2
-import numpy as np
-import argparse
-from core import Augmentation
-from parser import Parser
-from errors import UnknownMethodError
+import magic
+from scripts.core import Augmentation
+from scripts.parser import Parser
+from scripts.errors import UnknownMethodError, OutputError
+
+
+mime = magic.Magic(mime=True)
 
 
 def run(filename, method, params, output):
@@ -46,8 +47,32 @@ def main():
         run(filename, method, params, output)
 
     elif os.path.isdir(filename):
-        files = os.listdir(filename)
-        print(files)
+        print('Чтение директории...')
+        if not os.path.exists(output):
+            os.mkdir(output)
+
+        elif not os.path.isdir(output):
+            raise OutputError('При импортировании директории для вывода изображений должна быть директория')
+
+        files = os.walk(filename)
+        paths = []
+
+        for f in files:
+
+            for i in f[2]:
+                file = os.path.join(f[0], i)
+
+                try:
+
+                    if 'image' in mime.from_file(file):
+                        paths.append(os.path.join(f[0], i))
+
+                except Exception:
+                    pass
+
+        for file in paths:
+            f_output = output + '/' +'out_' + os.path.basename(file)
+            run(file, method, params, f_output)
 
 
 if __name__ == '__main__':
